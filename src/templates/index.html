@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResolveAI — Uber Support Agent</title>
+    <meta name="description" content="AI-powered customer support agent for Uber, built with RAG and LLM.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header__brand">
+            <div class="header__logo">R</div>
+            <h1 class="header__title">ResolveAI</h1>
+        </div>
+        <p class="header__subtitle">AI Support Agent for Uber — classify, decide, and draft replies.</p>
+    </header>
+
+    <!-- Input -->
+    <div class="card">
+        <label class="card__label" for="tweetInput">Customer Tweet</label>
+        <textarea
+            id="tweetInput"
+            class="input-area"
+            placeholder="Paste a customer tweet here, e.g. &quot;I got charged $50 for a ride I never took. Help.&quot;"
+        ></textarea>
+        <div class="btn-row">
+            <button id="analyzeBtn" class="btn btn--primary" onclick="analyzeTweet()">
+                <span class="btn__spinner" id="spinner"></span>
+                <span id="btnText">Analyze</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+        <div class="card">
+            <span class="card__label">Analysis</span>
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-item__label">Intent</div>
+                    <div class="result-item__value">
+                        <span class="tag tag--intent" id="intentValue"></span>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <div class="result-item__label">Action</div>
+                    <div class="result-item__value">
+                        <span class="tag" id="actionValue"></span>
+                    </div>
+                </div>
+                <div class="result-item result-item--full">
+                    <div class="result-item__label">Reason</div>
+                    <div class="result-item__value" id="reasonValue"></div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <span class="card__label">Drafted Reply</span>
+            <div class="reply-box" id="replyValue"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        Built for the Hiver SDE Intern Assignment &middot; Powered by Groq + RAG
+    </footer>
+
+</div>
+
+<script>
+async function analyzeTweet() {
+    const tweet = document.getElementById('tweetInput').value.trim();
+    const btn = document.getElementById('analyzeBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const results = document.getElementById('results');
+    const errorMsg = document.getElementById('errorMsg');
+
+    // Reset
+    results.classList.remove('visible');
+    errorMsg.classList.remove('visible');
+
+    if (!tweet) {
+        errorMsg.textContent = 'Please enter a customer tweet to analyze.';
+        errorMsg.classList.add('visible');
+        return;
+    }
+
+    // Loading state
+    btn.disabled = true;
+    btnText.textContent = 'Analyzing…';
+    spinner.style.display = 'inline-block';
+
+    try {
+        const response = await fetch('/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tweet })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Something went wrong.');
+        }
+
+        const data = await response.json();
+
+        // Populate results
+        document.getElementById('intentValue').textContent = data.intent;
+        
+        const actionEl = document.getElementById('actionValue');
+        actionEl.textContent = data.action;
+        actionEl.className = 'tag';
+        if (data.action === 'Auto-handle') {
+            actionEl.classList.add('tag--auto');
+        } else {
+            actionEl.classList.add('tag--escalate');
+        }
+
+        document.getElementById('reasonValue').textContent = data.reason;
+        document.getElementById('replyValue').textContent = data.reply;
+
+        results.classList.add('visible');
+
+    } catch (err) {
+        errorMsg.textContent = err.message;
+        errorMsg.classList.add('visible');
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Analyze';
+        spinner.style.display = 'none';
+    }
+}
+
+// Allow Ctrl+Enter to submit
+document.getElementById('tweetInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        analyzeTweet();
+    }
+});
+</script>
+
+</body>
+</html>

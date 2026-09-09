@@ -44,9 +44,9 @@ I defined 5 core intents for this agent:
 
 | Metric | Trivial Baseline | Simple Baseline (Zero-Shot) | Our Agent (RAG + LLM) |
 |--------|------------------|-----------------------------|------------------------|
-| Intent Accuracy | ... | ... | ... |
-| Escalation Accuracy | ... | ... | ... |
-| LLM Judge Score (1-5) | ... | ... | ... |
+| Intent Accuracy | ~20% (majority class) | *(pending)* | **47.65%** |
+| Escalation Accuracy | ~50% (always Auto-handle) | *(pending)* | **47.65%** |
+| LLM Judge Score (1-5) | 1.5 (static reply) | *(pending)* | **3.00** |
 
 ---
 

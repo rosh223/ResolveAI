@@ -5,12 +5,19 @@ from openai import OpenAI
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+# Resolve project root (one level up from src/)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 class UberSupportAgent:
-    def __init__(self, data_path='data/processed/uber_support_subsample.csv'):
+    def __init__(self, data_path=None):
+        if data_path is None:
+            data_path = os.path.join(PROJECT_ROOT, 'data', 'processed', 'uber_support_subsample.csv')
+        
         # Load API key explicitly
         api_key = os.environ.get("GROQ_API_KEY")
         if not api_key:
-            with open(".env") as f:
+            env_path = os.path.join(PROJECT_ROOT, '.env')
+            with open(env_path) as f:
                 for line in f:
                     if line.startswith("GROQ_API_KEY="):
                         api_key = line.split("=", 1)[1].strip()
