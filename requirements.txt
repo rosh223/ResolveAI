@@ -1,0 +1,11 @@
+pandas
+numpy
+scikit-learn
+openai
+python-dotenv
+jupyter
+matplotlib
+seaborn
+transformers
+torch
+tqdm
