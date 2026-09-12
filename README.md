@@ -4,7 +4,7 @@ This repository contains an AI customer support agent built for **Uber** (specif
 
 ## 🔗 Live Demo
 
-> **[Try it live on Render →](https://resolveai-YOUR_APP.onrender.com)**
+> **[Try it live on Render →](https://resolveai-arx3.onrender.com/)**
 >
 > ⚠️ **Important notes about the live demo:**
 > - Render's free tier **spins down after 15 minutes of inactivity**. The first request after inactivity may take **30–60 seconds** to cold-start. Please be patient.
