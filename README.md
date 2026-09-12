@@ -2,6 +2,9 @@
 
 This repository contains an AI customer support agent built for **Uber** (specifically the `@Uber_Support` handle on Twitter) using the Kaggle `thoughtvector/customer-support-on-twitter` dataset.
 
+<img width="1395" height="666" alt="image" src="https://github.com/user-attachments/assets/c5bba349-bb6f-4aac-bf7c-e6ba6e94a48c" />
+
+
 ## 1. Quick Start (Reproducing Results in < 15 mins)
 
 **Prerequisites:**
@@ -21,6 +24,9 @@ This repository contains an AI customer support agent built for **Uber** (specif
 
 ---
 
+<img width="1224" height="840" alt="image" src="https://github.com/user-attachments/assets/a55bb7ea-1ac3-4d1c-8cd8-4007c0a39c96" />
+
+
 ## 2. Problem Framing
 
 For this project, I chose **Uber_Support**. 
@@ -37,6 +43,8 @@ I defined 5 core intents for this agent:
 5. `Needs Context`
 
 ---
+<img width="1065" height="875" alt="image" src="https://github.com/user-attachments/assets/e9271108-a07f-4a93-ad2b-1daf864462c8" />
+
 
 ## 3. Results vs. Baselines
 
@@ -62,6 +70,8 @@ I defined 5 core intents for this agent:
 5. **Over-Escalation:** The agent tends to escalate tweets that merely express mild frustration, leading to unnecessary human workload.
 
 ---
+<img width="1123" height="850" alt="image" src="https://github.com/user-attachments/assets/35272bbb-7c90-418f-af03-39db232c69a8" />
+
 
 ## 5. What is misleading about my headline number?
 
