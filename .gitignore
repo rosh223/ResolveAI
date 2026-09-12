@@ -22,8 +22,9 @@ build/
 .jupyter/
 
 # Local data and model caches
-data/raw/customer-support-on-twitter.zip
-data/raw/twcs/twcs.csv
+data/raw/
+!data/processed/
+!data/processed/uber_support_subsample.csv
 Hiver SDE Intern Assignment - Google Docs.pdf
 *.pkl
 *.pickle

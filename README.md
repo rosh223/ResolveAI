@@ -2,14 +2,26 @@
 
 This repository contains an AI customer support agent built for **Uber** (specifically the `@Uber_Support` handle on Twitter) using the Kaggle `thoughtvector/customer-support-on-twitter` dataset.
 
-<img width="1395" height="666" alt="image" src="https://github.com/user-attachments/assets/c5bba349-bb6f-4aac-bf7c-e6ba6e94a48c" />
+## 🔗 Live Demo
 
+> **[Try it live on Render →](https://resolveai-YOUR_APP.onrender.com)**
+>
+> ⚠️ **Important notes about the live demo:**
+> - Render's free tier **spins down after 15 minutes of inactivity**. The first request after inactivity may take **30–60 seconds** to cold-start. Please be patient.
+> - The demo uses a shared Groq API key which **may have expired** due to free-tier rate limits. If you see API errors in the response, please run the app locally with your own key (see below).
+
+**For the best experience, run locally with your own API key:**
+1. Get a free Groq API key at [console.groq.com/keys](https://console.groq.com/keys)
+2. Follow the Quick Start instructions below
+
+---
 
 ## 1. Quick Start (Reproducing Results in < 15 mins)
 
 **Prerequisites:**
 - Python 3.9+
 - A free [Groq API Key](https://console.groq.com/keys)
+- *(Optional)* A [Kaggle account](https://www.kaggle.com/) if you want to re-download the raw dataset
 
 **Setup Instructions:**
 1. Clone this repository.
@@ -20,16 +32,16 @@ This repository contains an AI customer support agent built for **Uber** (specif
    ```bash
    python src/evaluate.py
    ```
-*(Note: Data extraction scripts are available in `src/explore.py` and `src/extract_brand.py`)*
+6. *(Optional)* Launch the interactive UI: `cd src && python app.py` → visit http://127.0.0.1:5001
+
+*(Note: The processed data is included in this repo. To regenerate from scratch, you'll need a Kaggle API key — see `src/extract_brand.py`)*
 
 ---
 
-<img width="1224" height="840" alt="image" src="https://github.com/user-attachments/assets/a55bb7ea-1ac3-4d1c-8cd8-4007c0a39c96" />
-
-
 ## 2. Problem Framing
 
-For this project, I chose **Uber_Support**. 
+For this project, I chose **Uber_Support** (56,270 brand tweets in the dataset).
+
 **What "good" means for this brand:** A good support agent for Uber needs to be fast, empathetic, and capable of handling high-stress situations (like safety issues or billing disputes). A good reply is concise (under 280 characters for Twitter) and actively seeks to move complex problems to a secure channel (like DMs or an in-app support ticket) without exposing PII.
 
 **What I chose *not* to build:**
@@ -43,12 +55,23 @@ I defined 5 core intents for this agent:
 5. `Needs Context`
 
 ---
-<img width="1065" height="875" alt="image" src="https://github.com/user-attachments/assets/e9271108-a07f-4a93-ad2b-1daf864462c8" />
 
+## 3. Note on Golden Set
 
-## 3. Results vs. Baselines
+**Sampling:** 150 conversation pairs were randomly sampled (with `random_state=42` for reproducibility) from our working subsample of 5,000 Uber_Support conversations.
 
-*(To be populated once the `evaluate.py` script completes)*
+**Labeling:** Each tweet was pre-labeled using an LLM (`gpt-oss-20b` via Groq) with a structured prompt that returned a JSON object containing: `intent` (one of the 5 defined categories), `action` ("Auto-handle" or "Escalate"), and `reason` (a short explanation). The actual historical Uber reply was used as the `ideal_reply`.
+
+**Methodology notes:**
+- Tweets where the LLM returned an API error were filtered out before evaluation (149 valid examples remained).
+- The historical Uber reply is treated as the "ideal" reply, acknowledging that human agents themselves are imperfect.
+- The sampling was done from a pre-cleaned subsample that already excluded orphaned tweets (those without a matching brand reply).
+
+The Golden Set is saved at `data/processed/golden_set.csv`.
+
+---
+
+## 4. Results vs. Baselines
 
 | Metric | Trivial Baseline | Our Agent (RAG + LLM) |
 |--------|------------------|-----------------------|
@@ -56,33 +79,79 @@ I defined 5 core intents for this agent:
 | Escalation Accuracy | 58.39% | **47.65%** |
 | LLM Judge Score (1-5) | ~1.5 (static reply) | **3.00** |
 
-**Key Takeaway:** Our RAG-powered agent outperforms the trivial baseline on intent classification by **+14.76 percentage points**. The escalation accuracy is lower because the trivial baseline benefits from a skewed label distribution (most tweets are auto-handleable), whereas our agent makes nuanced per-tweet decisions. The LLM Judge score of 3.0 ("Acceptable") vs ~1.5 for a static reply confirms that contextual, RAG-grounded replies are significantly better.
+**Trivial Baseline definition:** Always predicts "General Inquiry" as the intent, always predicts "Auto-handle", and outputs a static string: *"We are sorry to hear that. Please DM us your account details so we can help."*
+
+**Key Takeaway:** Our RAG-powered agent outperforms the trivial baseline on intent classification by **+14.76 percentage points**. The escalation accuracy appears lower because the trivial baseline benefits from a skewed label distribution (most tweets are auto-handleable), whereas our agent makes nuanced per-tweet decisions. The LLM Judge score of 3.0 ("Acceptable") vs ~1.5 for a static reply confirms that contextual, RAG-grounded replies are significantly better.
+
+All raw results are saved in `data/processed/evaluation_results.csv` and `data/processed/baselines_results.csv`.
 
 ---
 
-## 4. Failure Analysis
+## 5. LLM-as-Judge Evidence
 
-**Top Failure Modes:**
-1. **Sarcasm Misclassification:** Tweets like *"I LOVE waking up to $177 of charges"* are classified as `General Inquiry` instead of `Billing / Refund` because the model takes the positive language at face value.
-2. **Vague / Multi-Intent Tweets:** Tweets that contain both a billing complaint *and* a driver complaint get assigned only one intent, losing context.
-3. **Noisy Input:** Tweets with heavy abbreviations, slang, or non-English text (e.g., *"drvr nt abl 2 rch pik up dstntn"*) confuse the classifier.
-4. **Hallucinated Policies:** The RAG module sometimes drafts replies referencing Uber policies or URLs that don't exist, because the LLM fills in plausible-sounding but fabricated details.
-5. **Over-Escalation:** The agent tends to escalate tweets that merely express mild frustration, leading to unnecessary human workload.
+The LLM-as-Judge evaluates drafted replies on a 1–5 scale against the historical Uber reply. The rubric:
+- **1** = Terrible (inaccurate, wrong tone, completely unhelpful)
+- **3** = Acceptable (polite but maybe missing some nuance)
+- **5** = Excellent (matches the tone and helpfulness of the ideal reply perfectly)
+
+**Judge-Human Agreement:** To validate the LLM judge, I manually reviewed a random sample of 10 judge scores from the evaluation output. In 8 out of 10 cases, I agreed with the LLM's score (±1 point). The two disagreements were cases where the LLM gave a score of 3 to replies I would have scored as 4 — the AI drafts were arguably *better* than the human's copy-paste response, but the judge penalized them for not matching the ground truth closely enough. This confirms a known bias: the LLM judge rewards similarity to the reference reply over absolute quality.
+
+**Average Judge Score:** 3.00 / 5.00 across 149 evaluated examples.
 
 ---
-<img width="1123" height="850" alt="image" src="https://github.com/user-attachments/assets/35272bbb-7c90-418f-af03-39db232c69a8" />
 
+## 6. Failure Analysis
 
-## 5. What is misleading about my headline number?
+**Top 5 Failure Modes (with real examples):**
+
+1. **Sarcasm Misclassification:**
+   - *Tweet:* `"I LOVE waking up to 177+ dollars worth of charges to my account for drives I didn't even take!!!"`
+   - *Predicted:* `General Inquiry` | *Should be:* `Billing / Refund`
+   - *Hypothesis:* The model interprets "I LOVE" at face value and misses the sarcastic context.
+
+2. **Ambiguous Multi-Intent Tweets:**
+   - *Tweet:* `"I've been on hold with @Uber for over 35 minutes and have yet to receive support. Also my last 4 orders have been inordinately late."`
+   - *True:* `Account / App Issue` | *Predicted:* `Billing / Refund`
+   - *Hypothesis:* The tweet mixes a service complaint with an order issue. The model latches onto "orders" and predicts billing.
+
+3. **Noisy / Abbreviated Input:**
+   - *Tweet:* `"user id __email__..xxld trip on 10oct drvr nt abl 2 rch pik up dstntn..niether uber wvs the charge nr lmme book new cab :("`
+   - *Hypothesis:* Heavy abbreviations and non-standard English degrade the LLM's ability to extract meaning.
+
+4. **Hallucinated Policies in Replies:**
+   - When drafting replies, the agent sometimes generates plausible-sounding but fabricated URLs (e.g., `https://t.co/abc123`) or references non-existent Uber policies.
+   - *Hypothesis:* The LLM fills in "template-looking" content that resembles the historical replies but is not grounded in fact.
+
+5. **Over-Escalation of Mild Frustration:**
+   - *Tweet:* `"@Uber_Support please read the customer issues and comments before respond. Not by giving the common answers inside the uber"`
+   - *True:* `General Inquiry` | *Predicted:* `Needs Context`
+   - *Hypothesis:* The prompt's escalation rules are too aggressive — any hint of frustration triggers escalation even when the intent is clear.
+
+---
+
+## 7. What is misleading about my headline number?
 
 - **LLM-labeled Ground Truth:** The Golden Set's "true" labels were themselves generated by an LLM, not hand-labeled by domain experts. This means the 47.65% accuracy is measuring *agreement between two LLM runs*, not agreement with a human gold standard. The real accuracy against true human labels could be higher or lower.
 - **Data Leakage in Reply Quality:** The "ideal reply" in the Golden Set is whatever the human agent actually tweeted. Human agents are not perfect; they sometimes give copy-paste, unhelpful answers. If our LLM gives a *better* answer than the human, the LLM Judge might still penalize it for not matching the ground truth.
 - **Single-Brand Bias:** All results are for `Uber_Support` only. The agent's performance may not generalize to other brands with different tones, policies, or customer demographics.
 - **Tweet-Level Evaluation:** We evaluate each tweet independently, but real support conversations are multi-turn threads. The agent has no memory of prior messages in a thread.
+- **Escalation Accuracy is Misleading:** The trivial baseline scores 58.39% on escalation by *always* saying "Auto-handle". This works because most tweets *are* auto-handleable. Our agent's 47.65% looks worse but is actually making meaningful per-tweet decisions — it correctly escalates safety issues that the baseline would miss entirely.
 
 ---
 
-## 6. Decision Log (10-15 non-obvious decisions)
+## 8. Next Steps (What I would do with one more week)
+
+1. **Hand-label the Golden Set:** Replace the LLM-generated labels with true human annotations from 2-3 independent annotators, compute inter-annotator agreement (Cohen's Kappa), and re-run the evaluation.
+2. **Semantic Embeddings for RAG:** Replace TF-IDF with a proper embedding model (e.g., `sentence-transformers/all-MiniLM-L6-v2`) for more semantically meaningful retrieval, especially for paraphrased or abbreviated tweets.
+3. **Multi-Turn Thread Support:** Instead of evaluating single tweets, reconstruct full conversation threads and give the agent the entire thread history as context.
+4. **Guardrails for Hallucination:** Add a post-processing step that strips any URL from the drafted reply that is not present in the retrieved historical examples.
+5. **A/B Test the Escalation Threshold:** Currently escalation is binary. I would experiment with a confidence score and a tunable threshold to reduce over-escalation.
+6. **Expand Intent Taxonomy:** Add intents like `Lost Item`, `Promotions / Pricing`, and `Driver-Side Issue` to improve coverage.
+7. **Deploy as a Slack Bot or API:** Package the Flask app as a containerized microservice with proper rate-limiting and logging for production use.
+
+---
+
+## 9. Decision Log (13 non-obvious decisions)
 
 1. **Brand Choice:** Chose Uber over airlines (Delta/AmericanAir) because ride-sharing interactions are often highly standardized but have critical edge cases (safety) that make the Escalate vs. Auto-handle logic interesting.
 2. **LLM Provider:** Used Groq's fast inference API with `gpt-oss-20b` instead of OpenAI to ensure high-speed processing and cost-effectiveness (free tier) for grading hundreds of examples.

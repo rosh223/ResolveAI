@@ -9,3 +9,5 @@ seaborn
 transformers
 torch
 tqdm
+flask
+gunicorn
