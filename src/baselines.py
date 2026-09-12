@@ -5,9 +5,11 @@ from sklearn.metrics import accuracy_score
 from openai import OpenAI
 from tqdm import tqdm
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def run_baselines():
     print("Loading Golden Set...")
-    df = pd.read_csv('data/processed/golden_set.csv')
+    df = pd.read_csv(os.path.join(PROJECT_ROOT, 'data/processed/golden_set.csv'))
     valid_df = df[df['intent'] != 'Error'].copy()
     
     # --- TRIVIAL BASELINE ---
@@ -27,7 +29,7 @@ def run_baselines():
     print("\nEvaluating Simple Baseline (Zero-Shot LLM without RAG)...")
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        with open(".env") as f:
+        with open(os.path.join(PROJECT_ROOT, '.env')) as f:
             for line in f:
                 if line.startswith("GROQ_API_KEY="):
                     api_key = line.split("=", 1)[1].strip()
@@ -57,7 +59,7 @@ Customer Tweet: "{tweet}"
     
     # We would run the LLM-as-a-judge on these replies as well, 
     # but for speed during the test, we will just save them and can judge them later.
-    valid_df.to_csv('data/processed/baselines_results.csv', index=False)
+    valid_df.to_csv(os.path.join(PROJECT_ROOT, 'data/processed/baselines_results.csv'), index=False)
     print("Saved baseline results to data/processed/baselines_results.csv")
 
 if __name__ == "__main__":
